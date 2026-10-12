@@ -21,6 +21,7 @@
 #include <SDL3/SDL_joystick.h>
 #include <SDL3/SDL_power.h>
 #include <SDL3/SDL_video.h>
+#include <aurora/input.hpp>
 #include <absl/container/flat_hash_set.h>
 #include <aurora/lib/window.hpp>
 #include <aurora/rmlui.hpp>
@@ -92,6 +93,12 @@ std::vector<PendingDrop> sPendingDrops;
 // disconnected gamepad. Storing IDs here lets use only show disconnected
 // notifications for gamepads that we sent a connected notification for.
 absl::flat_hash_set<SDL_JoystickID> sConnectedGamepads;
+aurora::input::LayerId sRmlInputLayer = aurora::input::kInvalidLayerId;
+
+aurora::input::EventResult route_rml_input(const aurora::input::InputEvent& event, void*) noexcept {
+    return aurora::rmlui::process_input(event).handled ?
+        aurora::input::EventResult::Consume : aurora::input::EventResult::Pass;
+}
 
 }  // namespace
 
@@ -115,6 +122,11 @@ bool initialize() noexcept {
     register_icon_texture_provider();
     register_mod_texture_provider();
     register_remote_texture_provider();
+    sRmlInputLayer = aurora::input::register_layer({
+        .label = "dusklight.rmlui",
+        .priority = aurora::input::kRmlUiLayerPriority,
+        .onEvent = route_rml_input,
+    });
     Rml::StyleSheetSpecification::RegisterProperty("mod-icon-tint", "transparent", false)
         .AddParser("color");
     Rml::StyleSheetSpecification::RegisterProperty("mod-icon-background", "transparent", false)
@@ -124,6 +136,7 @@ bool initialize() noexcept {
 }
 
 void shutdown() noexcept {
+    aurora::input::unregister_layer(std::exchange(sRmlInputLayer, aurora::input::kInvalidLayerId));
     mods::updates::shutdown();
     mods::queue::shutdown();
     for (auto& drop : sPendingDrops) {

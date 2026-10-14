@@ -94,14 +94,17 @@ jobs:
             platform: macos
             preset: x-macos-ci-arm64
             artifact_name: macos-appleclang-arm64
+            dawn_msl_metadata_workaround: OFF
           - name: AppleClang macOS x86_64
             platform: macos
             preset: x-macos-ci-x86_64
             artifact_name: macos-appleclang-x86_64
+            dawn_msl_metadata_workaround: ON
           - name: AppleClang iOS arm64
             platform: ios
             preset: x-ios-ci
             artifact_name: ios-appleclang-arm64
+            dawn_msl_metadata_workaround: OFF
           # - name: AppleClang tvOS arm64
           #   platform: tvos
           #   preset: x-tvos-ci
@@ -138,7 +141,7 @@ jobs:
         uses: mozilla-actions/sccache-action@v0.0.10
 
       - name: Configure CMake
-        run: cmake --preset ${{matrix.preset}}
+        run: cmake --preset ${{matrix.preset}} -DAURORA_DAWN_INTEL_HD4000_MSL_WORKAROUND=${{matrix.dawn_msl_metadata_workaround}}
 
       - name: Build
         run: cmake --build --preset ${{matrix.preset}}
